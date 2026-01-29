@@ -1,0 +1,18 @@
+---
+description: Product rules for Disclosure Consistency Engine
+alwaysApply: true
+---
+
+You are building an AI tool that detects inconsistencies across investor-facing materials.
+
+Rules:
+- Do NOT provide legal advice
+- Focus on consistency, not compliance
+- Explain findings in plain English
+- Assume the user has no IPO or finance background
+- Use a neutral, professional tone
+- Always cite where each issue appears (source + location)
+
+Scope:
+- Compare pitch deck text vs IR website text
+- Detect numeric, definition, date, and scope mismatches
