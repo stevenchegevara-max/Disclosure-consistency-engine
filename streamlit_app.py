@@ -1,5 +1,6 @@
 import streamlit as st
 import json
+import subprocess
 
 st.set_page_config(page_title="Disclosure Consistency Engine", page_icon="📊", layout="centered")
 
@@ -26,44 +27,31 @@ deck_file = st.file_uploader("Upload Investor Deck (.txt)", type="txt")
 ir_file = st.file_uploader("Upload IR Site Content (.txt)", type="txt")
 
 if deck_file and ir_file:
-    deck_text = deck_file.read().decode("utf-8")
-    ir_text = ir_file.read().decode("utf-8")
+    with open("samples/deck.txt", "w", encoding="utf-8") as f:
+        f.write(deck_file.getvalue().decode("utf-8"))
+    with open("samples/ir.txt", "w", encoding="utf-8") as f:
+        f.write(ir_file.getvalue().decode("utf-8"))
 
-    # Simple numeric mismatch detection
-    import re
-
-    def extract_euro_numbers(text):
-        return re.findall(r'€\s?\d+[.,]?\d*\s?[MB]?', text)
-
-    deck_numbers = set(extract_euro_numbers(deck_text))
-    ir_numbers = set(extract_euro_numbers(ir_text))
-
-    mismatches = list(deck_numbers.symmetric_difference(ir_numbers))
-
-    st.markdown("### 🔍 Detected Inconsistencies")
-    if mismatches:
-        issues = []
-        for value in mismatches:
-            issues.append({
-                "issue_type": "numeric_mismatch",
-                "metric": "REVENUE",  # Placeholder
-                "deck_value": value if value in deck_numbers else "",
-                "ir_value": value if value in ir_numbers else "",
-                "recommended_action": "Align the metric value across documents."
-            })
-        st.json(issues)
-        st.success(f"{len(issues)} issue(s) found.")
-    else:
-        st.success("No numeric mismatches found! 🎉")
-
-    if st.button("📄 Download JSON Report"):
-        report = json.dumps(issues, indent=2)
-        st.download_button(
-            label="Download JSON",
-            data=report,
-            file_name="disclosure_report.json",
-            mime="application/json"
+    if st.button("🔍 Run Consistency Check"):
+        result = subprocess.run(
+            ["python", "engine/main.py", "--deck", "samples/deck.txt", "--ir", "samples/ir.txt"],
+            capture_output=True, text=True
         )
 
+        try:
+            output = json.loads(result.stdout.strip())
+            st.subheader("✅ Findings")
+            st.json(output)
+
+            report_json = json.dumps(output, indent=2)
+            st.download_button(
+                label="📄 Download JSON Report",
+                data=report_json,
+                file_name="disclosure_consistency_report.json",
+                mime="application/json"
+            )
+        except Exception as e:
+            st.error("❌ Failed to parse output")
+            st.code(result.stdout)
 else:
     st.info("Please upload both files to begin.")
